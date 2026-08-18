@@ -9,7 +9,8 @@
      Leave it in unless you actually want strangers finding this. -->
 <meta name="robots" content="noindex">
 
-<title>Which ___ are you?</title>
+<title>Which Avenger are you?</title>
+
 
 <style>
   /* ===================================================================
@@ -18,12 +19,12 @@
      =================================================================== */
 
   :root {
-    --bg: #12111a;
-    --card: #1e1c2a;
+    --bg: #50be15;
+    --card: #403965;
     --text: #f2f0ff;
     --muted: #a39fc0;
-    --accent: #ff5d8f;      /* TODO: make this your colour */
-    --radius: 16px;
+    --accent: #b5651d;      /* TODO: make this your colour */
+    --radius: 18px;
   }
 
   * { box-sizing: border-box; }
@@ -54,8 +55,8 @@
 
   /* The thin bar that fills up as you answer */
   .progress {
-    height: 6px;
-    background: rgba(255,255,255,.1);
+    height: 10px;
+    background: rgba(85, 173, 8, 0.1);
     border-radius: 99px;
     overflow: hidden;
     margin-bottom: 24px;
@@ -103,6 +104,16 @@
   .result-title { font-size: 2rem; margin: 0 0 12px; color: var(--accent); }
   .result-blurb { color: var(--muted); margin: 0 0 24px; }
 
+  /* The little scoreboard under the buttons. Small and dim on purpose —
+     it's there so you can see the scoring working, not to be the star. */
+  .scoreboard {
+    margin: 20px 0 0;
+    font-size: .75rem;
+    color: var(--muted);
+    opacity: .75;
+    line-height: 1.6;
+  }
+
   .row { display: flex; gap: 12px; flex-wrap: wrap; }
   button.action {
     font: inherit;
@@ -135,7 +146,7 @@
 
   <!-- Screen 1: the quiz -->
   <section id="quiz-screen">
-    <h1 id="quiz-title">Which ___ are you?</h1>
+    <h1 id="quiz-title">Which Avenger are you?</h1>
     <p class="sub" id="quiz-subtitle">TODO: write a one-line teaser here</p>
 
     <div class="progress"><div class="progress-fill" id="progress-fill"></div></div>
@@ -155,6 +166,10 @@
       <button class="action" id="copy-button">Copy my result</button>
       <button class="action ghost" id="restart-button">Try again</button>
     </div>
+
+    <!-- Filled in by showScoreboard(). Delete this line when you don't
+         want people seeing the numbers behind their result. -->
+   <p class="scoreboard" id="scoreboard"></p> 
   </section>
 
 </main>
@@ -171,53 +186,221 @@
    `id`. At the end, whichever id has the most points wins.
    ===================================================================== */
 
-const QUIZ_TITLE    = "Which ___ are you?";     // TODO: your title
-const QUIZ_SUBTITLE = "Six questions. Brutal honesty.";  // TODO: your teaser
+const QUIZ_TITLE    = "Which Avenger are you?";     // TODO: your title
+const QUIZ_SUBTITLE = "select the first that comes to mind";  // TODO: your teaser
 
 const QUESTIONS = [
   {
-    q: "It's Friday, 8pm. Where are you?",
+    q: "How do you handle conflict",
 
     // Pictures are optional. Put the file in the images/ folder, then delete
     // the // at the start of the next line. See "Adding images" in the README.
     // image: "images/friday-night.jpg",
 
     answers: [
-      { text: "Out. Obviously.",            points: { chaos: 2 } },
-      { text: "In bed with a series on.",   points: { calm: 2 } },
-      { text: "Wherever my friends are.",   points: { chaos: 1, calm: 1 } },
+      { text: "outsmart it",                             points: { iron: 2, bw: 1 } },
+      { text: "face it head-on, fairly",                 points: { capt: 2, thor: 1 } },
+      { text: "charge in.",                              points: { thor: 2, hulk: 1 } },
+      { text: "handle it quietly, alone",                points: { bw: 2, hulk: 1 } },
+      { text: "try to avoid it, then explode if pushed", points: { hulk: 2, bw: 1 } },
     ],
   },
   {
-    q: "Group project. What's your role?",
+    q: "Your ideal vacation",
     // image: "images/group-project.jpg",
     answers: [
-      { text: "Running it, obviously.",     points: { chaos: 2 } },
-      { text: "Doing the actual work.",     points: { calm: 2 } },
-      { text: "Morale.",                    points: { chaos: 1 } },
+      { text: "luxury resort with all the toys",    points: { iron: 2, thor: 1 } },
+      { text: "somewhere with history and meaning", points: { capt: 2 } },
+      { text: "somewhere loud and new",             points: { thor: 2, iron: 1 } },
+      { text: "off-grid, no one knows where",       points: { bw: 2, hulk: 1 } },
+      { text: "Nature, away from people",           points: { hulk: 2, bw: 1 } },
     ],
   },
-
-  // TODO: add four more questions. Copy the shape above exactly.
-  // Watch the commas — every } needs a , after it except the last one.
+  {
+    // Mottos are signature lines, so most of these stay pure - one hero each.
+    q: "pick a motto",
+    // image: "images/group-project.jpg",
+    answers: [
+      { text: "genius billionaire, playboy", points: { iron: 2 } },
+      { text: "I can do this all day",       points: { capt: 2 } },
+      { text: "bring it",                    points: { thor: 2, hulk: 1 } },
+      { text: "I've got red in my ledger",   points: { bw: 2 } },
+      { text: "Don't make me angry",         points: { hulk: 2 } },
+    ],
+  },
+  {
+    q: "Your leadership style",
+    // image: "images/group-project.jpg",
+    answers: [
+      { text: "Big vision, delegate details", points: { iron: 2 } },
+      { text: "Lead by example",              points: { capt: 2, bw: 1 } },
+      { text: "Lead by energy/morale",        points: { thor: 2, iron: 1 } },
+      { text: "Lead from the shadows",        points: { bw: 2 } },
+      { text: "Step up only when needed",     points: { hulk: 2, capt: 1 } },
+    ],
+  },
+  {
+    q: "pick a flaw",
+    // image: "images/group-project.jpg",
+    answers: [
+      { text: "Ego",          points: { iron: 2, thor: 1 } },
+      { text: "Stubbornness", points: { capt: 2 } },
+      { text: "Recklessness", points: { thor: 2, hulk: 1 } },
+      { text: "secretive",    points: { bw: 2 } },
+      { text: "Temper",       points: { hulk: 2 } },
+    ],
+  },
+  {
+    q: "Your biggest strength",
+    // image: "images/group-project.jpg",
+    answers: [
+      { text: "Confidence",   points: { iron: 2, thor: 1 } },
+      { text: "Loyalty",      points: { capt: 2 } },
+      { text: "Passion",      points: { thor: 2, capt: 1 } },
+      { text: "Strategy",     points: { bw: 2, iron: 1 } },
+      { text: "Raw strength", points: { hulk: 2 } },
+    ],
+  },
+  {
+    q: "How do you react to being told no",
+    // image: "images/group-project.jpg",
+    answers: [
+      { text: "Find a workaround nobody thought of",  points: { iron: 2, bw: 1 } },
+      { text: "Ask why, then push back on principle", points: { capt: 2 } },
+      { text: "Ignore it and do it anyway",           points: { thor: 2, iron: 1 } },
+      { text: "Say nothing, find another route",      points: { bw: 2 } },
+      { text: "Walk away before I say something",     points: { hulk: 2, bw: 1 } },
+    ],
+  },
+  {
+    q: "Your role in the group chat",
+    // image: "images/group-project.jpg",
+    answers: [
+      { text: "The one with the plan and the jokes",      points: { iron: 2 } },
+      { text: "The one who checks everyone's okay",       points: { capt: 2 } },
+      { text: "The one suggesting something wild at 1am", points: { thor: 2, iron: 1 } },
+      { text: "Reads everything, replies to nothing",     points: { bw: 2, hulk: 1 } },
+      { text: "Muted. Shows up when it's serious",        points: { hulk: 2, capt: 1 } },
+    ],
+  },
+  {
+    q: "Saturday morning, no plans",
+    // image: "images/group-project.jpg",
+    answers: [
+      { text: "Already building something",    points: { iron: 2 } },
+      { text: "Up early, out running",         points: { capt: 2, thor: 1 } },
+      { text: "Whoever calls first, I'm in",   points: { thor: 2 } },
+      { text: "Somewhere quiet with a coffee", points: { bw: 2, hulk: 1 } },
+      { text: "Still asleep. Don't",           points: { hulk: 2 } },
+    ],
+  },
+  {
+    q: "What do people notice about you first",
+    // image: "images/group-project.jpg",
+    answers: [
+      { text: "The confidence",           points: { iron: 2, thor: 1 } },
+      { text: "The steadiness",           points: { capt: 2 } },
+      { text: "The volume",               points: { thor: 2 } },
+      { text: "How little you give away", points: { bw: 2 } },
+      { text: "How calm you seem",        points: { hulk: 2, bw: 1 } },
+    ],
+  },
+  {
+    q: "How do you make big decisions",
+    // image: "images/group-project.jpg",
+    answers: [
+      { text: "Run the numbers, trust my gut anyway", points: { iron: 2 } },
+      { text: "Ask what the right thing to do is",    points: { capt: 2 } },
+      { text: "Whatever feels alive",                 points: { thor: 2, hulk: 1 } },
+      { text: "Weigh every angle, in private",        points: { bw: 2, iron: 1 } },
+      { text: "Delay until I have to choose",         points: { hulk: 2 } },
+    ],
+  },
+  {
+    q: "Rules are",
+    // image: "images/group-project.jpg",
+    answers: [
+      { text: "For people without better ideas", points: { iron: 2, thor: 1 } },
+      { text: "There for a reason, usually",     points: { capt: 2 } },
+      { text: "Slow",                            points: { thor: 2 } },
+      { text: "Useful cover",                    points: { bw: 2, iron: 1 } },
+      { text: "Fine, until they corner me",      points: { hulk: 2 } },
+    ],
+  },
+  {
+    q: "What actually drives you",
+    // image: "images/group-project.jpg",
+    answers: [
+      { text: "Proving I can",           points: { iron: 2, thor: 1 } },
+      { text: "Doing right by people",   points: { capt: 2 } },
+      { text: "The thrill of it",        points: { thor: 2 } },
+      { text: "Making up for something", points: { bw: 2, capt: 1 } },
+      { text: "Being left in peace",     points: { hulk: 2, bw: 1 } },
+    ],
+  },
+  {
+    q: "Under real pressure you",
+    // image: "images/group-project.jpg",
+    answers: [
+      { text: "Talk faster, think faster",     points: { iron: 2 } },
+      { text: "Get very still and very clear", points: { capt: 2, bw: 1 } },
+      { text: "Get louder",                    points: { thor: 2 } },
+      { text: "Go completely quiet",           points: { bw: 2, hulk: 1 } },
+      { text: "Feel it building",              points: { hulk: 2 } },
+    ],
+  },
+  {
+    q: "How do you celebrate a win",
+    // image: "images/group-project.jpg",
+    answers: [
+      { text: "Big. Everyone hears about it", points: { iron: 2, thor: 1 } },
+      { text: "Thank the team, move on",      points: { capt: 2, bw: 1 } },
+      { text: "Party. Immediately",           points: { thor: 2, iron: 1 } },
+      { text: "Privately. Maybe not at all",  points: { bw: 2, hulk: 1 } },
+      { text: "Relief more than joy",         points: { hulk: 2, capt: 1 } },
+    ],
+  },
+  // 15 questions. To add more, copy the shape above exactly.
+  // The main pick gets 2 points; a second hero gets 1 where it fits.
+  // Watch the commas - every } needs a , after it except the last one.
 ];
 
 const RESULTS = [
   {
-    id: "chaos",                      // must match the ids used in points
-    title: "Total Menace",
-    emoji: "🔥",
-    blurb: "TODO: write something that'll make someone screenshot this.",
+    id: "iron",       // must match the ids used in points
+    title: "Iron Man",
+    emoji: "🤖",
+    blurb: "You're the genius who turns chaos into a plan",
     // image: "images/result-chaos.jpg",   // optional — this is the one people share
   },
   {
-    id: "calm",
-    title: "Quietly In Control",
-    emoji: "🌙",
-    blurb: "TODO: write this one too.",
+    id: "capt",
+    title: "Capitan America",
+    emoji: "🛡️",
+    blurb: "You are the one everyone counts on to do the right thing, even when it;s hard",
     // image: "images/result-calm.jpg",
   },
-
+ {
+    id: "thor",
+    title: "Thor",
+    emoji: "⚡",
+    blurb: "You bring the energy into every room, impossible to ignore",
+    // image: "images/result-calm.jpg",
+  },
+  {
+    id: "bw",
+    title: "Black Widow",
+    emoji: "🕷️",
+    blurb: "You're a quiet strategist",
+    // image: "images/result-calm.jpg",
+  },
+  {
+    id: "hulk",
+    title: "Hulk",
+    emoji: "💚",
+    blurb: "Calm until it matters- then unstoppable",
+    // image: "images/result-calm.jpg",
+  },
   // TODO: add a third and fourth result. Two is a bit boring.
 ];
 
@@ -340,9 +523,12 @@ function chooseAnswer(answer) {
  * and undefined + 2 is NaN, not 2. So start it at 0 if it's missing.
  * ---------------------------------------------------------------------- */
 function addPoints(points) {
-
-  // TODO (Wednesday): make this actually work.
-
+  for (const id in points) {
+    if (!scores[id]) {
+      scores[id] = 0;
+    }
+    scores[id] += points[id];
+  }
 }
 
 
@@ -367,9 +553,62 @@ function showResult() {
   document.getElementById("result-title").textContent = winner.title;
   document.getElementById("result-blurb").textContent = winner.blurb;
 
+    //showScoreboard(winningId); 
+
   // Swap the screens over.
   quizScreen.classList.add("hidden");
   resultScreen.classList.remove("hidden");
+}
+
+
+/**
+ * Look up a result's title from its id. "thor" gives back "Thor".
+ * Falls back to the id itself if nothing matches, so it never comes back empty.
+ */
+function titleFor(id) {
+  for (let i = 0; i < RESULTS.length; i++) {
+    if (RESULTS[i].id === id) {
+      return RESULTS[i].title;
+    }
+  }
+  return id;
+}
+
+
+/**
+ * Print the final scores in small text under the buttons, highest first.
+ * Purely so you can see the scoring working — the quiz runs fine without it.
+ */
+function showScoreboard(winningId) {
+  const scoreboard = document.getElementById("scoreboard");
+
+  // No points at all means something went wrong. Say nothing rather than
+  // printing "bestScore: undefined".
+  if (!winningId) {
+    scoreboard.textContent = "";
+    return;
+  }
+
+  // Object.keys turns { iron: 8, thor: 14 } into the list ["iron", "thor"],
+  // which we can sort. Objects can't be sorted; arrays can.
+  const ids = Object.keys(scores);
+
+  // Highest score first, so the winner always leads the line.
+  ids.sort(function (a, b) {
+    return scores[b] - scores[a];
+  });
+
+  let line = "bestScore: " + scores[winningId] + "  |  ";
+
+  for (let i = 0; i < ids.length; i++) {
+    const id = ids[i];
+    line = line + titleFor(id) + " " + scores[id];
+    if (i < ids.length - 1) {
+      line = line + "  ·  ";
+    }
+  }
+
+  scoreboard.textContent = line;
 }
 
 
