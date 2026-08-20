@@ -20,10 +20,17 @@
 
   :root {
     --bg: #9115be;
-    --card: #403965;
+    --card: #2a2542;        /* darker than the page, so the card stands out */
     --text: #f2f0ff;
     --muted: #a39fc0;
-    --accent: #b5651d;      /* TODO: make this your colour */
+
+    /* Two browns, on purpose. The dark one is for FILLS — button and progress
+       bar backgrounds — where white text sits on top of it. The light one is
+       for TEXT and outlines, which have to be readable against the dark card.
+       One brown could not do both jobs and stay legible. */
+    --accent: #a85c18;
+    --accent-soft: #e8a866;
+
     --radius: 18px;
   }
 
@@ -56,7 +63,7 @@
   /* The thin bar that fills up as you answer */
   .progress {
     height: 10px;
-    background: rgba(85, 173, 8, 0.1);
+    background: rgba(255,255,255,.12);   /* neutral channel, tints with any theme */
     border-radius: 99px;
     overflow: hidden;
     margin-bottom: 24px;
@@ -96,12 +103,12 @@
     transition: background .15s, border-color .15s, transform .05s;
   }
   button.answer:hover { background: rgba(255,255,255,.12); }
-  button.answer:focus-visible { outline: none; border-color: var(--accent); }
+  button.answer:focus-visible { outline: none; border-color: var(--accent-soft); }
   button.answer:active { transform: scale(.99); }
 
   /* The result screen */
   .result-emoji { font-size: 4rem; line-height: 1; margin-bottom: 8px; }
-  .result-title { font-size: 2rem; margin: 0 0 12px; color: var(--accent); }
+  .result-title { font-size: 2rem; margin: 0 0 12px; color: var(--accent-soft); }
   .result-blurb { color: var(--muted); margin: 0 0 24px; }
 
   /* The little scoreboard under the buttons. Small and dim on purpose —
