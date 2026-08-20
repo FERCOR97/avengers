@@ -19,7 +19,7 @@
      =================================================================== */
 
   :root {
-    --bg: #50be15;
+    --bg: #9115be;
     --card: #403965;
     --text: #f2f0ff;
     --muted: #a39fc0;
@@ -118,7 +118,7 @@
   button.action {
     font: inherit;
     font-weight: 600;
-    color: var(--bg);
+    color: #fff;
     background: var(--accent);
     border: 0;
     border-radius: 999px;
@@ -147,7 +147,7 @@
   <!-- Screen 1: the quiz -->
   <section id="quiz-screen">
     <h1 id="quiz-title">Which Avenger are you?</h1>
-    <p class="sub" id="quiz-subtitle">TODO: write a one-line teaser here</p>
+    <p class="sub" id="quiz-subtitle">Fifteen questions. Go with your first instinct.</p>
 
     <div class="progress"><div class="progress-fill" id="progress-fill"></div></div>
 
@@ -186,8 +186,8 @@
    `id`. At the end, whichever id has the most points wins.
    ===================================================================== */
 
-const QUIZ_TITLE    = "Which Avenger are you?";     // TODO: your title
-const QUIZ_SUBTITLE = "select the first that comes to mind";  // TODO: your teaser
+const QUIZ_TITLE    = "Which Avenger are you?";
+const QUIZ_SUBTITLE = "Fifteen questions. Go with your first instinct.";
 
 const QUESTIONS = [
   {
@@ -218,7 +218,7 @@ const QUESTIONS = [
   },
   {
     // Mottos are signature lines, so most of these stay pure - one hero each.
-    q: "pick a motto",
+    q: "Pick a motto",
     // image: "images/group-project.jpg",
     answers: [
       { text: "genius billionaire, playboy", points: { iron: 2 } },
@@ -240,7 +240,7 @@ const QUESTIONS = [
     ],
   },
   {
-    q: "pick a flaw",
+    q: "Pick a flaw",
     // image: "images/group-project.jpg",
     answers: [
       { text: "Ego",          points: { iron: 2, thor: 1 } },
@@ -360,9 +360,9 @@ const QUESTIONS = [
       { text: "Relief more than joy",         points: { hulk: 2, capt: 1 } },
     ],
   },
-  // 15 questions. To add more, copy the shape above exactly.
-  // The main pick gets 2 points; a second hero gets 1 where it fits.
-  // Watch the commas - every } needs a , after it except the last one.
+    // 15 questions. To add more, copy the shape above exactly.
+    // The main pick gets 2 points; a second hero gets 1 where it fits.
+    // Watch the commas - every } needs a , after it except the last one.
 ];
 
 const RESULTS = [
@@ -375,9 +375,9 @@ const RESULTS = [
   },
   {
     id: "capt",
-    title: "Capitan America",
+    title: "Captain America",
     emoji: "🛡️",
-    blurb: "You are the one everyone counts on to do the right thing, even when it;s hard",
+    blurb: "You are the one everyone counts on to do the right thing, even when it's hard",
     // image: "images/result-calm.jpg",
   },
  {
@@ -398,7 +398,7 @@ const RESULTS = [
     id: "hulk",
     title: "Hulk",
     emoji: "💚",
-    blurb: "Calm until it matters- then unstoppable",
+    blurb: "Calm until it matters — then unstoppable",
     // image: "images/result-calm.jpg",
   },
   // TODO: add a third and fourth result. Two is a bit boring.
@@ -418,6 +418,11 @@ const RESULTS = [
 let currentQuestion = 0;
 let scores = {};
 
+// The questions in the order THIS run will show them. It starts empty and gets
+// filled with a shuffled copy when the quiz begins. QUESTIONS itself is never
+// reordered, so your file stays readable in the order you wrote it.
+let questionOrder = [];
+
 // Grab the bits of the page we need to change. document.getElementById
 // finds an element by the id="..." we gave it in the HTML above.
 const questionText   = document.getElementById("question-text");
@@ -435,10 +440,44 @@ document.title = QUIZ_TITLE;
 
 
 /**
+ * Return a shuffled COPY of any list, leaving the original untouched.
+ * Used twice: once for the question order, once for each question's answers.
+ */
+function shuffle(list) {
+  // .slice() with no arguments makes a copy. This matters: `const` stops you
+  // REASSIGNING QUESTIONS, but it does NOT stop you reordering what's inside
+  // it. Without this copy we'd be scrambling your content permanently.
+  const copy = list.slice();
+
+  // Walk backwards from the last position down to position 1. Position 0 needs
+  // no turn: by the time we reach it, it's the only one left.
+  for (let i = copy.length - 1; i > 0; i--) {
+
+    // Math.random() gives a decimal from 0 up to (but never reaching) 1.
+    // Times (i + 1) stretches that range, Math.floor chops the decimals off,
+    // so j lands on a whole number somewhere between 0 and i.
+    const j = Math.floor(Math.random() * (i + 1));
+
+    // Swap positions i and j. It takes three steps because assigning one
+    // straight onto the other would destroy the value we still need.
+    // temp is a parking space that holds it for one line.
+    const temp = copy[i];
+    copy[i] = copy[j];
+    copy[j] = temp;
+  }
+
+  // Hand back the scrambled copy. The original list is exactly as it was.
+  return copy;
+}
+
+
+/**
  * Draw one question on the screen: the text, and a button per answer.
  */
 function showQuestion() {
-  const question = QUESTIONS[currentQuestion];
+  // Read from the shuffled running order, NOT from QUESTIONS directly.
+  // currentQuestion is still 0, 1, 2... it's the LIST that changed order.
+  const question = questionOrder[currentQuestion];
 
   questionText.textContent = question.q;
 
@@ -448,14 +487,20 @@ function showQuestion() {
   // Empty the answers box, then add one button for each answer.
   answersBox.innerHTML = "";
 
-  for (let i = 0; i < question.answers.length; i++) {
-    const answer = question.answers[i];
+  // Shuffle a copy of THIS question's five answers, so the hero order on the
+  // buttons changes every time too. Without this the third button is always
+  // Thor's, and anyone who plays twice can game the result by position.
+  const shuffledAnswers = shuffle(question.answers);
+
+  for (let i = 0; i < shuffledAnswers.length; i++) {
+    const answer = shuffledAnswers[i];
 
     const button = document.createElement("button");
     button.className = "answer";
     button.textContent = answer.text;
 
-    // When this button is clicked, run chooseAnswer with this answer.
+    // The button remembers the answer OBJECT, not its position — so shuffling
+    // the display order can never mis-assign the points.
     button.addEventListener("click", function () {
       chooseAnswer(answer);
     });
@@ -463,8 +508,9 @@ function showQuestion() {
     answersBox.appendChild(button);
   }
 
-  // Update the progress bar. Maths: question 0 of 6 = 0%, 3 of 6 = 50%.
-  const percent = (currentQuestion / QUESTIONS.length) * 100;
+  // Update the progress bar. Maths: question 0 of 15 = 0%, 3 of 15 = 20%.
+  // Ask the running order how long it is, rather than assuming 15.
+  const percent = (currentQuestion / questionOrder.length) * 100;
   progressFill.style.width = percent + "%";
 }
 
@@ -494,7 +540,9 @@ function chooseAnswer(answer) {
 
   currentQuestion = currentQuestion + 1;
 
-  if (currentQuestion < QUESTIONS.length) {
+  // questionOrder.length is the same 15 as QUESTIONS.length, but asking the
+  // running order keeps this correct if you ever show only some questions.
+  if (currentQuestion < questionOrder.length) {
     showQuestion();          // more questions left
   } else {
     showResult();            // that was the last one
@@ -524,7 +572,7 @@ function chooseAnswer(answer) {
  * ---------------------------------------------------------------------- */
 function addPoints(points) {
   for (const id in points) {
-    if (!scores[id]) {
+    if (scores[id]===undefined) {
       scores[id] = 0;
     }
     scores[id] += points[id];
@@ -553,7 +601,7 @@ function showResult() {
   document.getElementById("result-title").textContent = winner.title;
   document.getElementById("result-blurb").textContent = winner.blurb;
 
-    //showScoreboard(winningId); 
+  showScoreboard(winningId); 
 
   // Swap the screens over.
   quizScreen.classList.add("hidden");
@@ -637,6 +685,7 @@ function highestScoringId() {
 document.getElementById("restart-button").addEventListener("click", function () {
   currentQuestion = 0;
   scores = {};
+  questionOrder = shuffle(QUESTIONS);   // a brand new order for every replay
   resultScreen.classList.add("hidden");
   quizScreen.classList.remove("hidden");
   showQuestion();
@@ -656,7 +705,9 @@ document.getElementById("copy-button").addEventListener("click", function () {
 });
 
 
-// Start the quiz.
+// Start the quiz. The shuffle MUST come first: showQuestion reads from
+// questionOrder, which is still an empty list until this line runs.
+questionOrder = shuffle(QUESTIONS);
 showQuestion();
 </script>
 
